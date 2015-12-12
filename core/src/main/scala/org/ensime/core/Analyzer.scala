@@ -252,7 +252,8 @@ class Analyzer(
       sender ! VoidResponse
     case FormatOneSourceReq(fileInfo: SourceFileInfo) =>
       sender ! StringResponse(handleFormatFile(fileInfo))
-
+    case StructureViewReq(fileInfo: SourceFileInfo) =>
+      sender ! StructureView(List("structure", "view", "stub"))
   }
 
   def handleReloadFiles(files: List[SourceFileInfo]): RpcResponse = {

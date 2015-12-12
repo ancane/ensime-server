@@ -571,3 +571,5 @@ sealed trait LegacyRawResponse extends RpcResponse
 case object FalseResponse extends LegacyRawResponse
 case object TrueResponse extends LegacyRawResponse
 case class StringResponse(text: String) extends LegacyRawResponse
+
+case class StructureView(view: List[String]) extends RpcResponse
