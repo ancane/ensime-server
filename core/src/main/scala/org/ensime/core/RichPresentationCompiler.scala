@@ -249,6 +249,26 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
 
   def askLinkPos(sym: Symbol, path: AbstractFile): Option[Position] =
     askOption(linkPos(sym, createSourceFile(path)))
+
+  def askStructure(fileInfo: SourceFileInfo): RpcResponse = {
+    def getStructureTree(f: SourceFile) = {
+      val x = new Response[Tree]()
+      askStructure(true)(f, x)
+      x.get
+    }
+
+    getStructureTree(createSourceFile(fileInfo)) match {
+      case Left(tree) =>
+        val traverser = new CollectTreeTraverser({
+          case m: MemberDef => s"(${m.keyword}) ${m.name}"
+        })
+        traverser.traverse(tree)
+        StructureView(traverser.results.toList)
+      case Right(ex) =>
+        EnsimeServerError(ex.getMessage)
+    }
+  }
+
 }
 
 class RichPresentationCompiler(

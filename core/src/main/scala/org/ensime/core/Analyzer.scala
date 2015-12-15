@@ -253,7 +253,7 @@ class Analyzer(
     case FormatOneSourceReq(fileInfo: SourceFileInfo) =>
       sender ! StringResponse(handleFormatFile(fileInfo))
     case StructureViewReq(fileInfo: SourceFileInfo) =>
-      sender ! StructureView(List("structure", "view", "stub"))
+      sender ! scalaCompiler.askStructure(fileInfo)
   }
 
   def handleReloadFiles(files: List[SourceFileInfo]): RpcResponse = {
@@ -294,8 +294,8 @@ class Analyzer(
 
   def createSourceFile(file: SourceFileInfo): SourceFile =
     scalaCompiler.createSourceFile(file)
-
 }
+
 object Analyzer {
   def apply(
     broadcaster: ActorRef,
