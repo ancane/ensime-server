@@ -185,6 +185,13 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askInspectTypeByName(name: String): Option[TypeInspectInfo] =
     askOption(typeByName(name).map(inspectType)).flatten
 
+  def askInspectTypeNoInterfaces(tpe: Type): Option[TypeInspectInfo] =
+    askOption(new TypeInspectInfo(
+      TypeInfo(tpe, PosNeededAvail),
+      companionTypeOf(tpe).map(cacheType),
+      interfaces = Nil
+    ))
+
   def askCompletePackageMember(path: String, prefix: String): List[CompletionInfo] =
     askOption(completePackageMember(path, prefix)).getOrElse(List.empty)
 
@@ -251,17 +258,24 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askLinkPos(sym: Symbol, path: AbstractFile): Option[Position] =
     askOption(linkPos(sym, createSourceFile(path)))
 
-  def askStructure(fileInfo: SourceFileInfo): RpcResponse = {
+  def askStructure(fileInfo: SourceFile): RpcResponse = {
     def getStructureTree(f: SourceFile) = {
       val x = new Response[Tree]()
       askStructure(true)(f, x)
       x.get
     }
 
-    getStructureTree(createSourceFile(fileInfo)) match {
+    def shouldDisplay(symbol: Symbol): Boolean = !(
+      symbol.isSynthetic
+      || (symbol eq NoSymbol)
+      || symbol.nameString.contains("$")
+    )
+
+    getStructureTree(fileInfo) match {
       case Left(tree) =>
         val traverser = new CollectTreeTraverser({
-          case m: MemberDef if !m.symbol.hasFlag(Flags.SYNTHETIC) => s"(${m.keyword}) ${m.name}"
+          case c: ClassDef if shouldDisplay(c.symbol) =>
+            s"(${c.keyword}) ${c.name} " + typeOfTree(c).flatMap(askInspectTypeNoInterfaces)
         })
         traverser.traverse(tree)
         StructureView(traverser.results.toList)
@@ -410,7 +424,7 @@ class RichPresentationCompiler(
     }
   }
 
-  private def typeOfTree(t: Tree): Option[Type] = {
+  protected def typeOfTree(t: Tree): Option[Type] = {
     val tree = t match {
       case Select(qualifier, name) if t.tpe == ErrorType =>
         qualifier
