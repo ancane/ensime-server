@@ -57,6 +57,7 @@ import scala.tools.nsc.Settings
 import scala.tools.nsc.interactive.{ CompilerControl, Global }
 import scala.tools.nsc.io.AbstractFile
 import scala.tools.nsc.reporters.Reporter
+import scala.tools.nsc.symtab.Flags
 import scala.tools.nsc.util._
 import scala.tools.refactoring.analysis.GlobalIndexes
 
@@ -260,7 +261,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     getStructureTree(createSourceFile(fileInfo)) match {
       case Left(tree) =>
         val traverser = new CollectTreeTraverser({
-          case m: MemberDef => s"(${m.keyword}) ${m.name}"
+          case m: MemberDef if !m.symbol.hasFlag(Flags.SYNTHETIC) => s"(${m.keyword}) ${m.name}"
         })
         traverser.traverse(tree)
         StructureView(traverser.results.toList)
