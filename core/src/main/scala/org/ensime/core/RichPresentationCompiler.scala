@@ -177,20 +177,16 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     askReloadFiles(loadedFiles)
 
   def askInspectTypeById(id: Int): Option[TypeInspectInfo] =
-    askOption(typeById(id).map(inspectType)).flatten
+    askOption(typeById(id).map(inspectType(_))).flatten
 
   def askInspectTypeAt(p: Position): Option[TypeInspectInfo] =
     askOption(inspectTypeAt(p)).flatten
 
   def askInspectTypeByName(name: String): Option[TypeInspectInfo] =
-    askOption(typeByName(name).map(inspectType)).flatten
+    askOption(typeByName(name).map(inspectType(_))).flatten
 
-  def askInspectTypeNoInterfaces(tpe: Type): Option[TypeInspectInfo] =
-    askOption(new TypeInspectInfo(
-      TypeInfo(tpe, PosNeededAvail),
-      companionTypeOf(tpe).map(cacheType),
-      interfaces = Nil
-    ))
+  def askInspectType(tpe: Type, includeInherited: Boolean = true): Option[TypeInspectInfo] =
+    askOption(inspectType(tpe, includeInherited))
 
   def askCompletePackageMember(path: String, prefix: String): List[CompletionInfo] =
     askOption(completePackageMember(path, prefix)).getOrElse(List.empty)
@@ -274,11 +270,15 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
     getStructureTree(fileInfo) match {
       case Left(tree) =>
         val traverser = new CollectTreeTraverser({
-          case c: ClassDef if shouldDisplay(c.symbol) =>
-            s"(${c.keyword}) ${c.name} " + typeOfTree(c).flatMap(askInspectTypeNoInterfaces)
+          case c: ClassDef if shouldDisplay(c.symbol) => c
+          case m: ModuleDef if shouldDisplay(m.symbol) => m
         })
         traverser.traverse(tree)
-        StructureView(traverser.results.toList)
+        StructureView(
+          traverser.results.toList.map { c =>
+            s"(${c.keyword}) ${c.name} " + typeOfTree(c).flatMap(askInspectType(_, false))
+          }
+        )
       case Right(ex) =>
         EnsimeServerError(ex.getMessage)
     }
@@ -350,7 +350,7 @@ class RichPresentationCompiler(
     unitOfFile.remove(f)
   }
 
-  private def typePublicMembers(tpe: Type): Iterable[TypeMember] = {
+  private def typePublicMembers(tpe: Type, includeInherited: Boolean = true): Iterable[TypeMember] = {
     val members = new mutable.LinkedHashMap[Symbol, TypeMember]
     def addTypeMember(sym: Symbol, pre: Type, inherited: Boolean, viaView: Symbol): Unit = {
       try {
@@ -370,8 +370,10 @@ class RichPresentationCompiler(
     for (sym <- tpe.decls) {
       addTypeMember(sym, tpe, inherited = false, NoSymbol)
     }
-    for (sym <- tpe.members) {
-      addTypeMember(sym, tpe, inherited = true, NoSymbol)
+    if (includeInherited) {
+      for (sym <- tpe.members) {
+        addTypeMember(sym, tpe, inherited = true, NoSymbol)
+      }
     }
     members.values
   }
@@ -399,12 +401,14 @@ class RichPresentationCompiler(
     }
   }
 
-  protected def inspectType(tpe: Type): TypeInspectInfo = {
+  protected def inspectType(tpe: Type, includeInheritedMembers: Boolean = true): TypeInspectInfo = {
     val parents = tpe.parents
     new TypeInspectInfo(
       TypeInfo(tpe, PosNeededAvail),
       companionTypeOf(tpe).map(cacheType),
-      prepareSortedInterfaceInfo(typePublicMembers(tpe.asInstanceOf[Type]), parents)
+      prepareSortedInterfaceInfo(
+        typePublicMembers(tpe.asInstanceOf[Type], includeInheritedMembers), parents
+      )
     )
   }
 
