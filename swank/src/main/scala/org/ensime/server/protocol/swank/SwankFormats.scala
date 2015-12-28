@@ -246,7 +246,6 @@ object SwankProtocolResponse {
   implicit val RefactorResultFormat = SexpFormat[RefactorResult]
   implicit val DebugVmErrorFormat = SexpFormat[DebugVmError]
   implicit val EmptySourcePositionFormat = SexpFormat[EmptySourcePosition]
-  implicit val StructureViewFormat = SexpFormat[StructureView]
 
   implicit object ERangePositionsFormat extends SexpFormat[ERangePositions] {
     def read(s: Sexp): ERangePositions = ???
@@ -427,6 +426,7 @@ object SwankProtocolResponse {
   implicit def SymbolInfoFormat = SexpFormat[SymbolInfo]
   implicit def InterfaceInfoFormat = SexpFormat[InterfaceInfo]
   implicit def TypeInspectInfoFormat = SexpFormat[TypeInspectInfo]
+  implicit val StructureViewFormat = SexpFormat[StructureView]
 
   implicit object FileEditFormat extends TraitFormatAlt[FileEdit] {
     def write(ti: FileEdit): Sexp = ti match {
