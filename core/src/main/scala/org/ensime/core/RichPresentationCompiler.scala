@@ -254,7 +254,7 @@ trait RichCompilerControl extends CompilerControl with RefactoringControl with C
   def askLinkPos(sym: Symbol, path: AbstractFile): Option[Position] =
     askOption(linkPos(sym, createSourceFile(path)))
 
-  def askStructure(fileInfo: SourceFile): List[StructureViewMembers] =
+  def askStructure(fileInfo: SourceFile): List[StructureViewMember] =
     askOption(new StructureViewBuilder(this).build(fileInfo))
       .getOrElse(List.empty)
 

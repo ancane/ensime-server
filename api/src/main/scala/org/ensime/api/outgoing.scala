@@ -572,12 +572,9 @@ case object FalseResponse extends LegacyRawResponse
 case object TrueResponse extends LegacyRawResponse
 case class StringResponse(text: String) extends LegacyRawResponse
 
-case class StructureView(view: List[String]) extends RpcResponse
-
-sealed trait StructureViewMembers
 case class StructureViewMember(
   keyword: String,
   name: String,
   position: SourcePosition,
-  members: List[StructureViewMembers]
-) extends StructureViewMembers
+  members: List[StructureViewMember]
+) extends RpcResponse

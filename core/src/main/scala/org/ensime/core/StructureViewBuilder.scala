@@ -15,7 +15,7 @@ class StructureViewBuilder(val global: RichPresentationCompiler)
   import global._
 
   sealed trait MemberBuilder {
-    def build: StructureViewMembers
+    def build: StructureViewMember
   }
 
   case class DefsBuilder(
@@ -24,7 +24,7 @@ class StructureViewBuilder(val global: RichPresentationCompiler)
       sym: Symbol,
       members: ListBuffer[MemberBuilder]
   ) extends MemberBuilder {
-    def build: StructureViewMembers =
+    def build: StructureViewMember =
       StructureViewMember(
         keyword,
         name,
@@ -36,19 +36,16 @@ class StructureViewBuilder(val global: RichPresentationCompiler)
   class StructureTraverser() extends Traverser {
     val log = LoggerFactory.getLogger(getClass)
 
-    val defs = new ListBuffer[DefsBuilder]()
-
-    def viewStructure: List[StructureViewMembers] =
-      defs.toList
-        .headOption
-        .map(_.members.map(_.build).toList)
-        .getOrElse(List.empty)
+    val stucture = new ListBuffer[StructureViewMember]()
 
     override def traverse(tree: Tree): Unit = {
       val df = DefsBuilder("", "", tree.symbol, new ListBuffer())
-      defs.append(df)
       traverse(tree, df)
+      stucture.appendAll(df.members.map(_.build))
     }
+
+    def shouldShow(x: DefDef): Boolean =
+      !(x.name == nme.CONSTRUCTOR || x.name == nme.MIXIN_CONSTRUCTOR || x.symbol.isAccessor)
 
     private def traverse(tree: Tree, parent: DefsBuilder): Unit = {
       tree match {
@@ -57,7 +54,7 @@ class StructureViewBuilder(val global: RichPresentationCompiler)
           val df = DefsBuilder(x.keyword, x.name.toString, x.symbol, new ListBuffer())
           parent.members.append(df)
           x.impl.body.foreach(traverse(_, df))
-        case x: DefDef if !(x.name == nme.CONSTRUCTOR || x.name == nme.MIXIN_CONSTRUCTOR || x.symbol.isAccessor) =>
+        case x: DefDef if shouldShow(x) =>
           parent.members.append(DefsBuilder(x.keyword, x.name.toString, x.symbol, new ListBuffer()))
         case x: TypeDef =>
           parent.members.append(DefsBuilder(x.keyword, x.name.toString, x.symbol, new ListBuffer()))
@@ -67,7 +64,7 @@ class StructureViewBuilder(val global: RichPresentationCompiler)
     }
   }
 
-  def build(fileInfo: SourceFile): List[StructureViewMembers] = {
+  def build(fileInfo: SourceFile): List[StructureViewMember] = {
     def getStructureTree(f: SourceFile) = {
       val x = new Response[Tree]()
       askStructure(true)(f, x)
@@ -78,7 +75,7 @@ class StructureViewBuilder(val global: RichPresentationCompiler)
       case Left(tree) =>
         val traverser = new StructureTraverser()
         traverser.traverse(tree)
-        traverser.viewStructure
+        traverser.stucture.toList
       case Right(ex) => List.empty
     }
   }

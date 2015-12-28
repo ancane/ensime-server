@@ -22,7 +22,7 @@ class StructureViewBuilderSpec extends WordSpec with Matchers
 
       val result = ListBuffer[String]()
 
-      def collect(parent: Option[String], x: StructureViewMembers): Unit = {
+      def collect(parent: Option[String], x: StructureViewMember): Unit = {
         val par = parent.map(_ + ".").getOrElse("")
         x match {
           case StructureViewMember(key, name, _, Nil) =>
@@ -35,9 +35,7 @@ class StructureViewBuilderSpec extends WordSpec with Matchers
 
       val file = srcFile(config, "abc.scala", contents(content))
       cc.askLoadedTyped(file)
-      cc.askStructure(file).foreach(
-        collect(None, _)
-      )
+      cc.askStructure(file).foreach(collect(None, _))
       result.toList
     }
 
