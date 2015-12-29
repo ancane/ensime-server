@@ -426,7 +426,7 @@ object SwankProtocolResponse {
   implicit def SymbolInfoFormat = SexpFormat[SymbolInfo]
   implicit def InterfaceInfoFormat = SexpFormat[InterfaceInfo]
   implicit def TypeInspectInfoFormat = SexpFormat[TypeInspectInfo]
-  implicit def StructureViewMemberFormat = SexpFormat[StructureViewMember]
+  implicit def StructureViewFormat = SexpFormat[StructureView]
 
   implicit object FileEditFormat extends TraitFormatAlt[FileEdit] {
     def write(ti: FileEdit): Sexp = ti match {
@@ -551,7 +551,7 @@ object SwankProtocolResponse {
       case value: RefactorEffect => value.toSexp
       case value: RefactorResult => value.toSexp
       case value: ImplicitInfos => value.toSexp
-      case value: StructureViewMember => value.toSexp
+      case value: StructureView => value.toSexp
       case error: EnsimeServerError =>
         throw new IllegalArgumentException(
           s"for legacy reasons, RpcError should be marshalled as an EnsimeServerMessage: $error"
