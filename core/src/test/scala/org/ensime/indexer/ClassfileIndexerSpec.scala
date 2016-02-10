@@ -6,12 +6,12 @@ import akka.event.slf4j.SLF4JLogging
 import org.ensime.fixture.IsolatedEnsimeVFSFixture
 import org.ensime.util.EnsimeSpec
 import org.scalatest.{ BeforeAndAfterAll, FunSpec, Matchers }
-import org.ensime.vfs._
 
 class ClassfileIndexerSpec extends EnsimeSpec with IsolatedEnsimeVFSFixture {
 
   val indexer = new ClassfileIndexer with SLF4JLogging {}
   import indexer._
+  import org.ensime.vfs._
 
   // TODO: some assertions (currently we're just checking that no exceptions are raised!)
 

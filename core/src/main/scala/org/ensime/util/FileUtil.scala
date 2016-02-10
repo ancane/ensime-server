@@ -12,6 +12,7 @@ import scala.collection.mutable
 import scala.reflect.internal.util.{ BatchSourceFile, SourceFile }
 
 import org.ensime.api._
+import org.ensime.vfs._
 import org.ensime.util.file._
 
 object RichFileObject {
@@ -84,7 +85,7 @@ object FileUtils {
     }
   }
 
-  def writeDiffChanges(changes: List[FileEdit], cs: Charset): Either[Exception, File] = {
+  def writeDiffChanges(changes: List[FileEdit], cs: Charset)(implicit vfs: EnsimeVFS): Either[Exception, FileObject] = {
     //TODO: add support for NewFile and DeleteFile
     val editsByFile = changes.collect { case ed: TextEdit => ed }.groupBy(_.file)
     try {
@@ -93,13 +94,13 @@ object FileUtils {
           case (file, fileChanges) =>
             readFile(file, cs) match {
               case Right(contents) =>
-                FileEditHelper.diffFromTextEdits(fileChanges, contents, file, file)
+                FileEditHelper.diffFromTextEdits(fileChanges, contents, vfs.vfile(file), vfs.vfile(file))
               case Left(e) => throw e
             }
         }.mkString("\n")
 
       Right({
-        val diffFile = java.io.File.createTempFile("ensime-diff-", ".tmp").canon
+        val diffFile = vfs.vtmp("ensime-diff-.tmp") //.canon
         diffFile.writeString(diffContents)
         diffFile
       })

@@ -3,6 +3,7 @@
 package org.ensime.util
 
 import java.io.File
+import org.apache.commons.vfs2.FileObject
 import org.ensime.api._
 
 object FileEditHelper {
@@ -22,7 +23,7 @@ object FileEditHelper {
     }
   }
 
-  def diffFromTextEdits(ch: List[TextEdit], source: String, originalFile: File, revisedFile: File): String = {
+  def diffFromTextEdits(ch: List[TextEdit], source: String, originalFile: FileObject, revisedFile: FileObject): String = {
     val newContents = applyEdits(ch, source)
     DiffUtil.compareContents(source.lines.toSeq, newContents.lines.toSeq, originalFile, revisedFile)
   }

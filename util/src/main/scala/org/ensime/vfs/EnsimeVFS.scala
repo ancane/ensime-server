@@ -68,6 +68,9 @@ object `package` {
     def vjar(jar: FileObject) = withContext(s"$jar =>")(
       vfs.resolveFile(("jar:" + jar.getName.getURI).intern)
     )
+    def vtmp(name: String) = withContext(s"$name =>")(
+      vfs.resolveFile(s"tmp:$name".intern)
+    )
 
     // WORKAROUND https://issues.apache.org/jira/browse/VFS-594
     def nuke(jar: FileObject) = {
