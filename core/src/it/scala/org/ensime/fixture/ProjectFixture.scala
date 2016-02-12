@@ -8,6 +8,7 @@ import akka.testkit._
 import akka.pattern.{ AskTimeoutException, Patterns }
 import org.ensime.api._
 import org.ensime.core._
+import org.ensime.vfs.EnsimeVFS
 
 import scala.collection.immutable.ListMap
 import scala.concurrent.Await
@@ -17,7 +18,8 @@ object ProjectFixture extends Matchers {
   private[fixture] def startup(
     implicit
     testkit: TestKitFix,
-    config: EnsimeConfig
+    config: EnsimeConfig,
+    vfs: EnsimeVFS
   ): (TestActorRef[Project], TestProbe) = {
     import testkit._
 
@@ -59,12 +61,13 @@ trait ProjectFixture {
   )(
     implicit
     testkit: TestKitFix,
-    config: EnsimeConfig
+    config: EnsimeConfig,
+    vfs: EnsimeVFS
   ): Any
 }
 
 trait IsolatedProjectFixture extends ProjectFixture {
-  override def withProject(testCode: (TestActorRef[Project], TestProbe) => Any)(implicit testkit: TestKitFix, config: EnsimeConfig): Any = {
+  override def withProject(testCode: (TestActorRef[Project], TestProbe) => Any)(implicit testkit: TestKitFix, config: EnsimeConfig, vfs: EnsimeVFS): Any = {
     val (project, probe) = ProjectFixture.startup
     testCode(project, probe)
   }
@@ -72,7 +75,8 @@ trait IsolatedProjectFixture extends ProjectFixture {
 
 trait SharedProjectFixture extends ProjectFixture
     with SharedEnsimeConfigFixture
-    with SharedTestKitFixture {
+    with SharedTestKitFixture
+    with SharedEnsimeVFSFixture {
 
   private var _project: TestActorRef[Project] = _
   private var _probe: TestProbe = _
@@ -81,11 +85,12 @@ trait SharedProjectFixture extends ProjectFixture
     super.beforeAll()
     implicit val testkit = _testkit
     implicit val config = _config
+
     val (project, probe) = ProjectFixture.startup
     _project = project
     _probe = probe
   }
 
-  override def withProject(testCode: (TestActorRef[Project], TestProbe) => Any)(implicit testkit: TestKitFix, config: EnsimeConfig): Any =
+  override def withProject(testCode: (TestActorRef[Project], TestProbe) => Any)(implicit testkit: TestKitFix, config: EnsimeConfig, vfs: EnsimeVFS): Any =
     testCode(_project, _probe)
 }

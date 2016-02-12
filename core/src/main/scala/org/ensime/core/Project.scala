@@ -24,7 +24,8 @@ import org.ensime.util.FileUtils
  */
 class Project(
     broadcaster: ActorRef,
-    implicit val config: EnsimeConfig
+    implicit val config: EnsimeConfig,
+    implicit val vfs: EnsimeVFS
 ) extends Actor with ActorLogging with Stash {
   import context.{ dispatcher, system }
 
@@ -42,7 +43,6 @@ class Project(
   // TODO: use state transitions to manage this state
   // vfs, resolver, search and watchers are considered "reliable" (hah!)
   // TODO: Actor-ise as many of these vals as possible
-  private implicit val vfs: EnsimeVFS = EnsimeVFS()
   private val resolver = new SourceResolver(config)
   private val searchService = new SearchService(config, resolver)
   private val sourceWatcher = new SourceWatcher(config, resolver :: Nil)

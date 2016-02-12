@@ -16,65 +16,68 @@ import org.ensime.util.file._
 class CompileTimingTest extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
-    with IsolatedProjectFixture {
+    with IsolatedProjectFixture
+    with IsolatedEnsimeVFSFixture {
 
   val original = EnsimeConfigFixture.TimingTestProject
 
   "ensime-server" should "handle multiple sbt clean / compile" in {
     withEnsimeConfig { implicit config =>
       withTestKit { implicit testkit =>
-        withProject { (project, asyncHelper) =>
-          import testkit._
+        withVFS { implicit vfs =>
+          withProject { (project, asyncHelper) =>
+            import testkit._
 
-          val sourceRoot = scalaMain(config)
+            val sourceRoot = scalaMain(config)
 
-          val example = sourceRoot / "p1/Example.scala"
+            val example = sourceRoot / "p1/Example.scala"
 
-          val target = (mainTarget / "..").canon
-          val targetBak = (target / "../scala-classes.bak").canon
+            val target = (mainTarget / "..").canon
+            val targetBak = (target / "../scala-classes.bak").canon
 
-          val exampleDiskInfo = SourceFileInfo(example, None, None)
-          val exampleMemory = SourceFileInfo(example, None, Some(example))
+            val exampleDiskInfo = SourceFileInfo(example, None, None)
+            val exampleMemory = SourceFileInfo(example, None, Some(example))
 
-          FileUtils.copyDirectory(target, targetBak)
+            FileUtils.copyDirectory(target, targetBak)
 
-          project ! TypecheckFileReq(exampleDiskInfo)
-          expectMsg(VoidResponse)
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+            project ! TypecheckFileReq(exampleDiskInfo)
+            expectMsg(VoidResponse)
+            asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
 
-          // GUI usually responds to each typecheck by requesting symbols
-          project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
-          expectMsgType[SymbolDesignations]
+            // GUI usually responds to each typecheck by requesting symbols
+            project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
+            expectMsgType[SymbolDesignations]
 
-          // typecheck an in-memory version of the file
-          project ! TypecheckFileReq(exampleMemory)
-          expectMsg(VoidResponse)
+            // typecheck an in-memory version of the file
+            project ! TypecheckFileReq(exampleMemory)
+            expectMsg(VoidResponse)
 
-          asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
-          project ! SymbolDesignationsReq(Right(exampleMemory), 0, 70, SourceSymbol.allSymbols)
-          expectMsgType[SymbolDesignations]
+            asyncHelper.expectMsg(FullTypeCheckCompleteEvent)
+            project ! SymbolDesignationsReq(Right(exampleMemory), 0, 70, SourceSymbol.allSymbols)
+            expectMsgType[SymbolDesignations]
 
-          // simulate sbt clean https://github.com/sbt/sbt/issues/106
-          FileUtils.deleteDirectory(target)
+            // simulate sbt clean https://github.com/sbt/sbt/issues/106
+            FileUtils.deleteDirectory(target)
 
-          asyncHelper.receiveN(2) should contain theSameElementsAs (Seq(
-            FullTypeCheckCompleteEvent,
-            CompilerRestartedEvent
-          ))
+            asyncHelper.receiveN(2) should contain theSameElementsAs (Seq(
+              FullTypeCheckCompleteEvent,
+              CompilerRestartedEvent
+            ))
 
-          project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
-          expectMsgType[SymbolDesignations]
+            project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
+            expectMsgType[SymbolDesignations]
 
-          // simulate sbt compile
-          FileUtils.copyDirectory(targetBak, target)
+            // simulate sbt compile
+            FileUtils.copyDirectory(targetBak, target)
 
-          asyncHelper.receiveN(2) should contain theSameElementsAs (Seq(
-            FullTypeCheckCompleteEvent,
-            CompilerRestartedEvent
-          ))
+            asyncHelper.receiveN(2) should contain theSameElementsAs (Seq(
+              FullTypeCheckCompleteEvent,
+              CompilerRestartedEvent
+            ))
 
-          project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
-          expectMsgType[SymbolDesignations]
+            project ! SymbolDesignationsReq(Right(exampleDiskInfo), 0, 70, SourceSymbol.allSymbols)
+            expectMsgType[SymbolDesignations]
+          }
         }
       }
     }

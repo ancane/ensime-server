@@ -17,6 +17,7 @@ import org.ensime.api._
 import org.ensime.config._
 import org.ensime.core._
 import org.ensime.server.tcp.TCPServer
+import org.ensime.vfs.EnsimeVFS
 import org.slf4j._
 import org.slf4j.bridge.SLF4JBridgeHandler
 
@@ -43,6 +44,7 @@ class ServerActor(
     implicit val config = this.config
     implicit val mat = ActorMaterializer()
     implicit val timeout = Timeout(10 seconds)
+    implicit val vfs: EnsimeVFS = EnsimeVFS()
 
     val broadcaster = context.actorOf(Broadcaster(), "broadcaster")
     val project = context.actorOf(Project(broadcaster), "project")
@@ -54,7 +56,7 @@ class ServerActor(
     // this is a bit ugly in a couple of ways
     // 1) web server creates handlers in the top domain
     // 2) We have to manually capture the failure to write the port file and lift the error to a failure.
-    val webserver = new WebServerImpl(project, broadcaster)(config, context.system, mat, timeout)
+    val webserver = new WebServerImpl(project, broadcaster)(config, vfs, context.system, mat, timeout)
 
     // async start the HTTP Server
     val selfRef = self

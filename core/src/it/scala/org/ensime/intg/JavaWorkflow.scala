@@ -11,25 +11,28 @@ import org.ensime.util.file._
 class JavaWorkflow extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
-    with IsolatedProjectFixture {
+    with IsolatedProjectFixture
+    with IsolatedEnsimeVFSFixture {
 
   val original = EnsimeConfigFixture.JavaTestProject
 
   "ensime-server" should "open the pure Java test project" in {
     withEnsimeConfig { implicit config =>
       withTestKit { implicit testkit =>
-        withProject { (project, asyncHelper) =>
-          import testkit._
+        withVFS { implicit vfs =>
+          withProject { (project, asyncHelper) =>
+            import testkit._
 
-          val sourceRoot = javaMain(config)
-          val fooFile = sourceRoot / "pure/NoScalaHere.java"
-          val fooFilePath = fooFile.getAbsolutePath
+            val sourceRoot = javaMain(config)
+            val fooFile = sourceRoot / "pure/NoScalaHere.java"
+            val fooFilePath = fooFile.getAbsolutePath
 
-          project ! TypecheckFilesReq(List(Left(fooFile)))
-          expectMsg(VoidResponse)
+            project ! TypecheckFilesReq(List(Left(fooFile)))
+            expectMsg(VoidResponse)
 
-          project ! TypeAtPointReq(Left(fooFile), OffsetRange(30))
-          expectMsg(Some(BasicTypeInfo("pure.NoScalaHere", DeclaredAs.Class, "pure.NoScalaHere", Nil, Nil, Some(EmptySourcePosition()))))
+            project ! TypeAtPointReq(Left(fooFile), OffsetRange(30))
+            expectMsg(Some(BasicTypeInfo("pure.NoScalaHere", DeclaredAs.Class, "pure.NoScalaHere", Nil, Nil, Some(EmptySourcePosition()))))
+          }
         }
       }
     }

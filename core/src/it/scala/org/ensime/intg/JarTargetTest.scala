@@ -15,22 +15,25 @@ import scala.concurrent.duration._
 class JarTargetTest extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
-    with IsolatedProjectFixture {
+    with IsolatedProjectFixture
+    with IsolatedEnsimeVFSFixture {
 
   val original = EnsimeConfigFixture.SimpleJarTestProject
 
   "ensime-server" should "index jar targets" in {
     withEnsimeConfig { implicit config =>
       withTestKit { implicit tk =>
-        withProject { (project, asyncHelper) =>
-          import tk._
+        withVFS { implicit vfs =>
+          withProject { (project, asyncHelper) =>
+            import tk._
 
-          mainTarget should be a 'file
+            mainTarget should be a 'file
 
-          eventually(interval(1 second)) {
-            project ! PublicSymbolSearchReq(List("Foo"), 5)
-            atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
-              case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Class, Some(_)) =>
+            eventually(interval(1 second)) {
+              project ! PublicSymbolSearchReq(List("Foo"), 5)
+              atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
+                case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Class, Some(_)) =>
+              }
             }
           }
         }
@@ -41,18 +44,19 @@ class JarTargetTest extends EnsimeSpec
   it should "allow jar targets to be deleted" in {
     withEnsimeConfig { implicit config =>
       withTestKit { implicit tk =>
-        withProject { (project, asyncHelper) =>
-          mainTarget should be a 'file
+        withVFS { implicit vfs =>
+          withProject { (project, asyncHelper) =>
+            mainTarget should be a 'file
 
-          // no scaling here
-          eventually(timeout(30 seconds), interval(1 second)) {
-            mainTarget.delete() shouldBe true
+            // no scaling here
+            eventually(timeout(30 seconds), interval(1 second)) {
+              mainTarget.delete() shouldBe true
+            }
           }
         }
       }
     }
   }
-
 }
 
 /**
@@ -61,7 +65,8 @@ class JarTargetTest extends EnsimeSpec
 class MissingJarTargetTest extends EnsimeSpec
     with IsolatedEnsimeConfigFixture
     with IsolatedTestKitFixture
-    with IsolatedProjectFixture {
+    with IsolatedProjectFixture
+    with IsolatedEnsimeVFSFixture {
 
   val original = EnsimeConfigFixture.SimpleJarTestProject
 
@@ -70,31 +75,32 @@ class MissingJarTargetTest extends EnsimeSpec
   "ensime-server" should "index jar targets that appear after startup" in {
     withEnsimeConfig { implicit config =>
       withTestKit { implicit tk =>
-        withProject { (project, asyncHelper) =>
-          import tk._
+        withVFS { implicit vfs =>
+          withProject { (project, asyncHelper) =>
+            import tk._
 
-          // internal consistency check
-          mainTarget(original) should be a 'file
+            // internal consistency check
+            mainTarget(original) should be a 'file
 
-          // we want to support the case where the .jar doesn't
-          // exist on startup, and we don't try to create it.
-          mainTarget should not be 'exists
+            // we want to support the case where the .jar doesn't
+            // exist on startup, and we don't try to create it.
+            mainTarget should not be 'exists
 
-          FileUtils.copyFile(mainTarget(original), mainTarget)
-          mainTarget should be a 'file
+            FileUtils.copyFile(mainTarget(original), mainTarget)
+            mainTarget should be a 'file
 
-          // means the file addition was detected
-          asyncHelper.expectMsg(CompilerRestartedEvent)
+            // means the file addition was detected
+            asyncHelper.expectMsg(CompilerRestartedEvent)
 
-          eventually(interval(1 second)) {
-            project ! PublicSymbolSearchReq(List("Foo"), 5)
-            atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
-              case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Class, Some(_)) =>
+            eventually(interval(1 second)) {
+              project ! PublicSymbolSearchReq(List("Foo"), 5)
+              atLeast(1, expectMsgType[SymbolSearchResults].syms) should matchPattern {
+                case TypeSearchResult("baz.Foo$", "Foo$", DeclaredAs.Class, Some(_)) =>
+              }
             }
           }
         }
       }
     }
   }
-
 }

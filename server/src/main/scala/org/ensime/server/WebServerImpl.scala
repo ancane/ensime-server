@@ -8,6 +8,7 @@ import akka.stream.Materializer
 import akka.util.Timeout
 import org.ensime.api._
 import org.ensime.core._
+import org.ensime.vfs.EnsimeVFS
 import scala.concurrent.Future
 
 class WebServerImpl(
@@ -16,6 +17,7 @@ class WebServerImpl(
 )(
     implicit
     val config: EnsimeConfig,
+    val vfs: EnsimeVFS,
     val system: ActorSystem,
     val mat: Materializer,
     val timeout: Timeout

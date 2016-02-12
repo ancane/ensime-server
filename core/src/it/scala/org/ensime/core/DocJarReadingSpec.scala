@@ -4,18 +4,27 @@ package org.ensime.core
 
 import org.ensime.fixture._
 import org.ensime.util.EnsimeSpec
+import org.ensime.vfs.EnsimeVFS
 
-class DocJarReadingSpec extends EnsimeSpec with SharedEnsimeConfigFixture {
+class DocJarReadingSpec
+    extends EnsimeSpec
+    with SharedEnsimeConfigFixture
+    with SharedEnsimeVFSFixture {
 
   val original = EnsimeConfigFixture.DocsTestProject
 
-  "DocJarReading" should "serve entries from jar files" in withEnsimeConfig { c =>
-    val reader = new DocJarReading {
-      def config = c
+  "DocJarReading" should "serve entries from jar files" in {
+    withEnsimeConfig { c =>
+      withVFS { implicit fs =>
+
+        val reader = new DocJarReading {
+          val config = c
+          val vfs = fs
+        }
+
+        val content = reader.docJarContent("scala-library-" + c.scalaVersion + "-javadoc.jar", "index.html")
+        content shouldBe defined
+      }
     }
-
-    val content = reader.docJarContent("scala-library-" + c.scalaVersion + "-javadoc.jar", "index.html")
-
-    content should not be 'empty
   }
 }
